@@ -1,4 +1,7 @@
 # Byte-compiled / optimized / DLL files
+
+gcloud/
+
 __pycache__/
 *.py[cod]
 *$py.class
@@ -109,3 +112,5 @@ Pipfile.lock
 
 resources/taggers/
 regression_train/
+/gcloud/
+/gcloud/

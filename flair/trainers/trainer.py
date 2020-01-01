@@ -119,7 +119,7 @@ class ModelTrainer:
             try:
                 from torch.utils.tensorboard import SummaryWriter
 
-                writer = SummaryWriter()
+                writer = SummaryWriter(base_path)
             except:
                 log_line(log)
                 log.warning(
@@ -219,6 +219,7 @@ class ModelTrainer:
         dev_score_history = []
         dev_loss_history = []
         train_loss_history = []
+        train_step = 0
 
         # At any point you can hit Ctrl + C to break out of training early.
         try:
@@ -270,6 +271,7 @@ class ModelTrainer:
                 batch_time = 0
                 for batch_no, batch in enumerate(batch_loader):
                     start_time = time.time()
+                    train_step += 1
                     loss = self.model.forward_loss(batch)
 
                     optimizer.zero_grad()
@@ -290,6 +292,10 @@ class ModelTrainer:
                     store_embeddings(batch, embeddings_storage_mode)
 
                     batch_time += time.time() - start_time
+
+                    if self.use_tensorboard:
+                        writer.add_scalar("Loss/train", train_loss / seen_batches, train_step )
+
                     if batch_no % modulo == 0:
                         log.info(
                             f"epoch {epoch + 1} - iter {batch_no}/{total_number_of_batches} - loss "
@@ -312,7 +318,7 @@ class ModelTrainer:
                 )
 
                 if self.use_tensorboard:
-                    writer.add_scalar("train_loss", train_loss, epoch + 1)
+                    writer.add_scalar("Loss/train", train_loss, train_step)
 
                 # anneal against train loss if training with dev, otherwise anneal against dev score
                 current_score = train_loss
@@ -358,9 +364,9 @@ class ModelTrainer:
                     store_embeddings(self.corpus.dev, embeddings_storage_mode)
 
                     if self.use_tensorboard:
-                        writer.add_scalar("dev_loss", dev_loss, epoch + 1)
+                        writer.add_scalar("Loss/eval", dev_loss, epoch + 1)
                         writer.add_scalar(
-                            "dev_score", dev_eval_result.main_score, epoch + 1
+                            "Score/dev", dev_eval_result.main_score, epoch + 1
                         )
 
                 if log_test:
@@ -382,9 +388,9 @@ class ModelTrainer:
                     store_embeddings(self.corpus.test, embeddings_storage_mode)
 
                     if self.use_tensorboard:
-                        writer.add_scalar("test_loss", test_loss, epoch + 1)
+                        writer.add_scalar("Loss/test", test_loss, epoch + 1)
                         writer.add_scalar(
-                            "test_score", test_eval_result.main_score, epoch + 1
+                            "Score/test", test_eval_result.main_score, epoch + 1
                         )
 
                 # determine learning rate annealing through scheduler
